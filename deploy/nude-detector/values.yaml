@@ -5,6 +5,9 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+imagePullSecrets:
+  - name: dockerconfigjson-github-com
+
 nameOverride: ""
 fullnameOverride: ""
 
