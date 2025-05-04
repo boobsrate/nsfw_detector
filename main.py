@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, HTTPException
 from nudenet import NudeDetector
 import uvicorn
 from typing import List, Dict
