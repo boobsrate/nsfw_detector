@@ -40,15 +40,16 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Install/upgrade helm chart to Kubernetes cluster
-        env:
-          KUBECONFIG_FILE: '${{ secrets.KUBECONFIG }}'
-        run: |
-          helm3 upgrade nsfw-detector ./deploy/nude-detector \
-            --wait \
-            --install \
-            --namespace nude-detector \
-            --create-namespace \
-            --set image.name=${{ steps.meta.outputs.tags }} \
-            --timeout 5m0s \
-            --debug
+      # Helm deployment step - requires helm to be installed in runner
+      # - name: Install/upgrade helm chart to Kubernetes cluster
+      #   env:
+      #     KUBECONFIG_FILE: '${{ secrets.KUBECONFIG }}'
+      #   run: |
+      #     helm upgrade nsfw-detector ./deploy/nude-detector \
+      #       --wait \
+      #       --install \
+      #       --namespace nude-detector \
+      #       --create-namespace \
+      #       --set image.name=${{ steps.meta.outputs.tags }} \
+      #       --timeout 5m0s \
+      #       --debug
