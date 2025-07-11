@@ -1,0 +1,64 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  REGISTRY: zot.forgejo.svc.cluster.local:5000
+  IMAGE_NAME: boobsrate/nude-detector
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    container:
+      image: catthehacker/ubuntu:act-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+
+      - name: Generate Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          network: host
+          build-args: |
+            HTTP_PROXY=
+            HTTPS_PROXY=
+            NO_PROXY=localhost,127.0.0.1,zot.forgejo.svc.cluster.local
+
+      - name: Update deployment
+        run: |
+          # Создаем kubeconfig из секрета
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          
+          # Обновляем deployment
+          kubectl set image deployment/nsfw-detector \
+            nsfw-detector=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${GITHUB_SHA:0:7} \
+            -n nude-detector
+          
+          # Ждем готовности
+          kubectl rollout status deployment/nsfw-detector -n nude-detector --timeout=5m
