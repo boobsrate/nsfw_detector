@@ -24,6 +24,8 @@ jobs:
       - name: Generate Docker metadata
         id: meta
         uses: docker/metadata-action@v3
+        env:
+          DOCKER_HOST: tcp://localhost:2376
         with:
           images: |
             ${{ env.REGISTRY }}/${{ github.repository }}
@@ -32,13 +34,27 @@ jobs:
           flavor: |
             latest=${{ steps.extract_branch.outputs.branch == 'master' }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        env:
+          DOCKER_HOST: tcp://localhost:2376
+        with:
+          driver-opts: |
+            network=host
+          buildkitd-flags: --debug
+          driver: docker-container
+
       - name: Build and push
         uses: docker/build-push-action@v3
+        env:
+          DOCKER_HOST: tcp://localhost:2376
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}:buildcache,mode=max
 
       # Helm deployment step - requires helm to be installed in runner
       # - name: Install/upgrade helm chart to Kubernetes cluster
