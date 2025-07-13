@@ -34,15 +34,22 @@ jobs:
           flavor: |
             latest=${{ steps.extract_branch.outputs.branch == 'master' }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Create Docker context for TCP
         env:
           DOCKER_HOST: tcp://localhost:2376
+          DOCKER_CERT_PATH: /certs/client
+          DOCKER_TLS_VERIFY: 1
+        run: |
+          docker context create tcp-context --docker "host=tcp://localhost:2376" || true
+          docker context use tcp-context
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
         with:
+          endpoint: tcp-context
           driver-opts: |
             network=host
           buildkitd-flags: --debug
-          driver: docker-container
 
       - name: Build and push
         uses: docker/build-push-action@v3
